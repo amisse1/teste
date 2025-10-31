@@ -1207,6 +1207,9 @@
             try {
                 console.log('🔧 Initializing application...');
                 
+                // First, clean any corrupted data
+                cleanCorruptedData();
+                
                 // Initialize data first
                 initializeData();
                 
@@ -1239,6 +1242,80 @@
                 console.log('✅ Application initialized successfully');
             } catch (error) {
                 console.error('❌ Error initializing application:', error);
+            }
+        }
+
+        function cleanCorruptedData() {
+            console.log('🧹 Cleaning corrupted data...');
+            
+            // Clean categories
+            const storedCategories = localStorage.getItem('categories');
+            if (storedCategories) {
+                try {
+                    let cats = JSON.parse(storedCategories);
+                    // Filter out categories with invalid data
+                    cats = cats.filter(cat => 
+                        cat && 
+                        cat.id && 
+                        cat.name && 
+                        cat.name !== 'undefined' && 
+                        cat.name.trim() !== '' &&
+                        cat.nameEn && 
+                        cat.nameEn !== 'undefined' && 
+                        cat.nameEn.trim() !== ''
+                    );
+                    localStorage.setItem('categories', JSON.stringify(cats));
+                    console.log('✅ Cleaned categories:', cats.length);
+                } catch (e) {
+                    console.error('❌ Error cleaning categories:', e);
+                    localStorage.removeItem('categories');
+                }
+            }
+            
+            // Clean subcategories
+            const storedSubcategories = localStorage.getItem('subcategories');
+            if (storedSubcategories) {
+                try {
+                    let subs = JSON.parse(storedSubcategories);
+                    // Filter out subcategories with invalid data
+                    subs = subs.filter(sub => 
+                        sub && 
+                        sub.id && 
+                        sub.name && 
+                        sub.name !== 'undefined' && 
+                        sub.name.trim() !== '' &&
+                        sub.nameEn && 
+                        sub.nameEn !== 'undefined' && 
+                        sub.nameEn.trim() !== ''
+                    );
+                    localStorage.setItem('subcategories', JSON.stringify(subs));
+                    console.log('✅ Cleaned subcategories:', subs.length);
+                } catch (e) {
+                    console.error('❌ Error cleaning subcategories:', e);
+                    localStorage.removeItem('subcategories');
+                }
+            }
+            
+            // Clean links
+            const storedLinks = localStorage.getItem('links');
+            if (storedLinks) {
+                try {
+                    let lks = JSON.parse(storedLinks);
+                    // Filter out links with invalid data
+                    lks = lks.filter(link => 
+                        link && 
+                        link.id && 
+                        link.title && 
+                        link.title !== 'undefined' && 
+                        link.title.trim() !== '' &&
+                        link.url
+                    );
+                    localStorage.setItem('links', JSON.stringify(lks));
+                    console.log('✅ Cleaned links:', lks.length);
+                } catch (e) {
+                    console.error('❌ Error cleaning links:', e);
+                    localStorage.removeItem('links');
+                }
             }
         }
 
@@ -1293,7 +1370,7 @@
             if (storedCategories) {
                 try {
                     categories = JSON.parse(storedCategories);
-                    console.log('✅ Categories loaded:', categories.length);
+                    console.log('✅ Categories loaded from localStorage:', categories.length);
                 } catch (e) {
                     console.error('Error parsing categories:', e);
                     loadDefaultCategories();
@@ -1307,7 +1384,7 @@
             if (storedSubcategories) {
                 try {
                     subcategories = JSON.parse(storedSubcategories);
-                    console.log('✅ Subcategories loaded:', subcategories.length);
+                    console.log('✅ Subcategories loaded from localStorage:', subcategories.length);
                 } catch (e) {
                     console.error('Error parsing subcategories:', e);
                     loadDefaultSubcategories();
@@ -1321,7 +1398,7 @@
             if (storedLinks) {
                 try {
                     links = JSON.parse(storedLinks);
-                    console.log('✅ Links loaded:', links.length);
+                    console.log('✅ Links loaded from localStorage:', links.length);
                 } catch (e) {
                     console.error('Error parsing links:', e);
                     loadDefaultLinks();
@@ -1329,6 +1406,23 @@
             } else {
                 loadDefaultLinks();
             }
+            
+            // Ensure all categories have required fields and filter out any corrupted ones
+            categories = categories
+                .filter(cat => cat && cat.id && cat.name && cat.name !== 'undefined' && cat.name.trim() !== '')
+                .map(cat => ({
+                    id: cat.id,
+                    name: cat.name || 'Unnamed Category',
+                    nameEn: cat.nameEn || cat.name || 'Unnamed Category',
+                    icon: cat.icon || 'fas fa-folder',
+                    description: cat.description || 'No description available',
+                    descriptionEn: cat.descriptionEn || cat.description || 'No description available',
+                    image: cat.image || null,
+                    count: cat.count || 0,
+                    isAdult: cat.isAdult || false
+                }));
+                
+            console.log('✅ Final categories after cleanup:', categories.length);
         }
 
         function loadDefaultCategories() {
@@ -1562,8 +1656,13 @@
             // Clear the grid
             categoriesGrid.innerHTML = '';
             
+            // Filter out any corrupted categories
+            const validCategories = categories.filter(cat => 
+                cat && cat.name && cat.name !== 'undefined' && cat.name.trim() !== ''
+            );
+            
             // Determine how many categories to show
-            const categoriesToShow = showAllCategories ? categories : categories.slice(0, 12);
+            const categoriesToShow = showAllCategories ? validCategories : validCategories.slice(0, 12);
             
             if (categoriesToShow.length === 0) {
                 categoriesGrid.innerHTML = `
@@ -1608,7 +1707,7 @@
             
             // Show "Show More" button if there are more categories
             if (showMoreContainer) {
-                if (categories.length > 12) {
+                if (validCategories.length > 12) {
                     showMoreContainer.style.display = 'block';
                     const showMoreBtn = showMoreContainer.querySelector('.show-more-btn');
                     const showMoreText = document.getElementById('showMoreText');
