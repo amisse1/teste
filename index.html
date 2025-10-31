@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -1163,7 +1162,6 @@
         let currentSubcategory = null;
         let searchTimeout = null;
         let urlProcessed = false;
-        let pageReloaded = false;
 
         // URL parameter mapping
         const urlToCategoryMap = {
@@ -1201,99 +1199,72 @@
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Inicializando LinkCatalog...');
+            console.log('🚀 Initializing LinkCatalog...');
             initializeApp();
-            
-            // Auto-reload once after 1 second to sync data
-            if (!pageReloaded) {
-                setTimeout(() => {
-                    console.log('🔄 Sincronizando dados...');
-                    location.reload();
-                    pageReloaded = true;
-                }, 1000);
-            }
-            
-            // Listen for data updates from admin
-            window.addEventListener('message', function(event) {
-                if (event.data && event.data.type === 'DATA_UPDATED') {
-                    console.log('✅ Dados atualizados do admin');
-                    initializeData();
-                    updateCounts();
-                    loadCategories();
-                    loadFeaturedLinks();
-                    
-                    // Check URL again after data update
-                    if (!urlProcessed) {
-                        processURL();
-                        urlProcessed = true;
-                    }
-                }
-            });
         });
 
         function initializeApp() {
-            console.log('🔧 Inicializando aplicação...');
-            // Initialize data first
-            initializeData();
-            
-            // Show temporary warning banner
-            showWarningBanner();
-            
-            // Update counts
-            updateCounts();
-            
-            // Load categories
-            loadCategories();
-            
-            // Load featured links
-            loadFeaturedLinks();
-            
-            // Setup search functionality
-            setupSearch();
-            
-            // Process URL parameters
-            processURL();
-            
-            // Show cookie banner if not accepted
-            if (!localStorage.getItem('cookiesAccepted')) {
-                setTimeout(() => {
-                    document.getElementById('cookieBanner').style.display = 'block';
-                }, 3000);
+            try {
+                console.log('🔧 Initializing application...');
+                
+                // Initialize data first
+                initializeData();
+                
+                // Show temporary warning banner
+                showWarningBanner();
+                
+                // Update counts
+                updateCounts();
+                
+                // Load categories
+                loadCategories();
+                
+                // Load featured links
+                loadFeaturedLinks();
+                
+                // Setup search functionality
+                setupSearch();
+                
+                // Process URL parameters
+                processURL();
+                
+                // Show cookie banner if not accepted
+                if (!localStorage.getItem('cookiesAccepted')) {
+                    setTimeout(() => {
+                        const cookieBanner = document.getElementById('cookieBanner');
+                        if (cookieBanner) cookieBanner.style.display = 'block';
+                    }, 3000);
+                }
+                
+                console.log('✅ Application initialized successfully');
+            } catch (error) {
+                console.error('❌ Error initializing application:', error);
             }
         }
 
         function processURL() {
-            // Check if URL has already been processed
             if (urlProcessed) return;
             
-            console.log('🌐 Processando URL...');
+            console.log('🌐 Processing URL...');
             
-            // Get current URL path
             const path = window.location.pathname;
-            console.log('📍 Caminho da URL:', path);
+            console.log('📍 URL path:', path);
             
-            // Extract category from URL
             if (path && path !== '/' && path !== '/index.html') {
                 const urlCategory = path.substring(1).toLowerCase();
-                console.log('🎯 Categoria da URL:', urlCategory);
+                console.log('🎯 URL category:', urlCategory);
                 
-                // Check if it matches any category in our map
                 if (urlToCategoryMap.hasOwnProperty(urlCategory)) {
                     const categoryId = urlToCategoryMap[urlCategory];
                     const category = categories.find(cat => cat.id === categoryId);
                     
                     if (category) {
-                        console.log('✅ Categoria encontrada:', category.name);
-                        // Open the category directly
+                        console.log('✅ Category found:', category.name);
                         setTimeout(() => {
                             openCategory(category);
                             urlProcessed = true;
                         }, 500);
-                    } else {
-                        console.log('❌ Categoria não encontrada no localStorage');
                     }
-                } else {
-                    console.log('❌ Categoria não mapeada:', urlCategory);
                 }
             }
             
@@ -1301,594 +1272,158 @@
         }
 
         function updateURL(category = null) {
-            let newURL = 'https://www.linkscatalog.work.gd';
+            let newURL = window.location.origin;
             
             if (category) {
-                // Find the URL-friendly name for the category
                 const urlName = Object.keys(urlToCategoryMap).find(key => urlToCategoryMap[key] === category.id);
                 if (urlName) {
                     newURL += '/' + urlName;
                 }
             }
             
-            // Update browser URL without reloading the page
             window.history.pushState({}, '', newURL);
-            console.log('🔗 URL atualizada:', newURL);
+            console.log('🔗 URL updated:', newURL);
         }
 
         function initializeData() {
-            console.log('📂 Inicializando dados...');
-            // Check if data exists in localStorage, if not initialize with default data
+            console.log('📂 Initializing data...');
+            
+            // Load categories
             const storedCategories = localStorage.getItem('categories');
-            const storedSubcategories = localStorage.getItem('subcategories');
-            const storedLinks = localStorage.getItem('links');
-
-            console.log('💾 Dados no localStorage:', {
-                categories: storedCategories ? JSON.parse(storedCategories).length : 0,
-                subcategories: storedSubcategories ? JSON.parse(storedSubcategories).length : 0,
-                links: storedLinks ? JSON.parse(storedLinks).length : 0
-            });
-
-            // Try to load from localStorage first
             if (storedCategories) {
                 try {
                     categories = JSON.parse(storedCategories);
-                    console.log('✅ Categorias carregadas:', categories.length);
-                    // Update URL mapping with new categories
-                    updateURLMapping();
+                    console.log('✅ Categories loaded:', categories.length);
                 } catch (e) {
-                    console.error('❌ Erro ao analisar categorias:', e);
+                    console.error('Error parsing categories:', e);
                     loadDefaultCategories();
                 }
             } else {
-                console.log('📝 Carregando categorias padrão...');
                 loadDefaultCategories();
             }
 
+            // Load subcategories
+            const storedSubcategories = localStorage.getItem('subcategories');
             if (storedSubcategories) {
                 try {
                     subcategories = JSON.parse(storedSubcategories);
-                    console.log('✅ Subcategorias carregadas:', subcategories.length);
+                    console.log('✅ Subcategories loaded:', subcategories.length);
                 } catch (e) {
-                    console.error('❌ Erro ao analisar subcategorias:', e);
+                    console.error('Error parsing subcategories:', e);
                     loadDefaultSubcategories();
                 }
             } else {
-                console.log('📝 Carregando subcategorias padrão...');
                 loadDefaultSubcategories();
             }
 
+            // Load links
+            const storedLinks = localStorage.getItem('links');
             if (storedLinks) {
                 try {
                     links = JSON.parse(storedLinks);
-                    console.log('✅ Links carregados:', links.length);
+                    console.log('✅ Links loaded:', links.length);
                 } catch (e) {
-                    console.error('❌ Erro ao analisar links:', e);
+                    console.error('Error parsing links:', e);
                     loadDefaultLinks();
                 }
             } else {
-                console.log('📝 Carregando links padrão...');
                 loadDefaultLinks();
             }
-
-            // Ensure all categories have required fields
-            categories = categories.map(cat => ({
-                id: cat.id,
-                name: cat.name || 'Unnamed Category',
-                nameEn: cat.nameEn || cat.name || 'Unnamed Category',
-                icon: cat.icon || 'fas fa-folder',
-                description: cat.description || 'No description available',
-                descriptionEn: cat.descriptionEn || cat.description || 'No description available',
-                image: cat.image || null,
-                count: cat.count || 0,
-                isAdult: cat.isAdult || false
-            }));
-        }
-
-        function updateURLMapping() {
-            console.log('🗺️ Atualizando mapeamento de URLs...');
-            // Update URL mapping with new categories
-            categories.forEach(category => {
-                if (!Object.values(urlToCategoryMap).includes(category.id)) {
-                    // Create URL-friendly name from category name
-                    const urlName = category.nameEn.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-                    urlToCategoryMap[urlName] = category.id;
-                    console.log('🔗 Mapeado:', urlName, '->', category.id);
-                }
-            });
         }
 
         function loadDefaultCategories() {
-            console.log('📝 Carregando categorias padrão...');
+            console.log('📝 Loading default categories...');
             categories = [
-                { 
-                    id: 1, 
-                    name: 'Vídeos', 
-                    nameEn: 'Videos',
-                    icon: 'fas fa-video', 
-                    description: 'Assista e descubra vídeos de várias plataformas',
-                    descriptionEn: 'Watch and discover videos from various platforms',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 2, 
-                    name: 'Redes Sociais', 
-                    nameEn: 'Social Media',
-                    icon: 'fas fa-share-alt', 
-                    description: 'Conecte-se com pessoas e compartilhe conteúdo',
-                    descriptionEn: 'Connect with people and share content',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 3, 
-                    name: 'Música', 
-                    nameEn: 'Music',
-                    icon: 'fas fa-music', 
-                    description: 'Ouça músicas, descubra artistas e playlists',
-                    descriptionEn: 'Listen to music, discover artists and playlists',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 4, 
-                    name: 'Educação', 
-                    nameEn: 'Education',
-                    icon: 'fas fa-graduation-cap', 
-                    description: 'Aprenda novas habilidades e expanda seu conhecimento',
-                    descriptionEn: 'Learn new skills and expand your knowledge',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 5, 
-                    name: 'Notícias', 
-                    nameEn: 'News',
-                    icon: 'fas fa-newspaper', 
-                    description: 'Mantenha-se atualizado com as últimas notícias e eventos',
-                    descriptionEn: 'Stay updated with the latest news and events',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 6, 
-                    name: 'Compras', 
-                    nameEn: 'Shopping',
-                    icon: 'fas fa-shopping-cart', 
-                    description: 'Encontre os melhores negócios e produtos online',
-                    descriptionEn: 'Find the best deals and products online',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 7, 
-                    name: 'Conteúdo Adulto', 
-                    nameEn: 'Adult Content',
-                    icon: 'fas fa-exclamation-triangle', 
-                    description: 'Conteúdo restrito a adultos maiores de 18 anos',
-                    descriptionEn: 'Content restricted to adults over 18 years',
-                    image: null, 
-                    count: 0, 
-                    isAdult: true 
-                },
-                { 
-                    id: 8, 
-                    name: 'Jogos', 
-                    nameEn: 'Games',
-                    icon: 'fas fa-gamepad', 
-                    description: 'Jogue online e descubra novos títulos',
-                    descriptionEn: 'Play online games and discover new titles',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 9, 
-                    name: 'Tecnologia', 
-                    nameEn: 'Technology',
-                    icon: 'fas fa-laptop-code', 
-                    description: 'Descubra as últimas novidades em tecnologia',
-                    descriptionEn: 'Discover the latest in tech and innovation',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 10, 
-                    name: 'Saúde', 
-                    nameEn: 'Health',
-                    icon: 'fas fa-heartbeat', 
-                    description: 'Informações sobre saúde, bem-estar e medicina',
-                    descriptionEn: 'Information about health, wellness and medicine',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 11, 
-                    name: 'Viagem', 
-                    nameEn: 'Travel',
-                    icon: 'fas fa-plane', 
-                    description: 'Planeje suas viagens e descubra novos destinos',
-                    descriptionEn: 'Plan your trips and discover new destinations',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 12, 
-                    name: 'Comida', 
-                    nameEn: 'Food',
-                    icon: 'fas fa-utensils', 
-                    description: 'Receitas, restaurantes e experiências culinárias',
-                    descriptionEn: 'Recipes, restaurants and culinary experiences',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 13, 
-                    name: 'Esportes', 
-                    nameEn: 'Sports',
-                    icon: 'fas fa-running', 
-                    description: 'Acompanhe seus esportes e atletas favoritos',
-                    descriptionEn: 'Follow your favorite sports and athletes',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 14, 
-                    name: 'Finanças', 
-                    nameEn: 'Finance',
-                    icon: 'fas fa-chart-line', 
-                    description: 'Gerencie seu dinheiro e investimentos',
-                    descriptionEn: 'Manage your money and investments',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 15, 
-                    name: 'Arte', 
-                    nameEn: 'Art',
-                    icon: 'fas fa-palette', 
-                    description: 'Explore artes visuais, design e criatividade',
-                    descriptionEn: 'Explore visual arts, design and creativity',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 16, 
-                    name: 'Livros', 
-                    nameEn: 'Books',
-                    icon: 'fas fa-book', 
-                    description: 'Descubra livros, autores e obras literárias',
-                    descriptionEn: 'Discover books, authors and literary works',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 17, 
-                    name: 'Filmes', 
-                    nameEn: 'Movies',
-                    icon: 'fas fa-film', 
-                    description: 'Assista filmes, séries e documentários',
-                    descriptionEn: 'Watch movies, series and documentaries',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 18, 
-                    name: 'Fotografia', 
-                    nameEn: 'Photography',
-                    icon: 'fas fa-camera', 
-                    description: 'Aprenda técnicas e mostre seu trabalho',
-                    descriptionEn: 'Learn photography techniques and showcase your work',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 19, 
-                    name: 'Ciência', 
-                    nameEn: 'Science',
-                    icon: 'fas fa-flask', 
-                    description: 'Explore descobertas científicas e pesquisas',
-                    descriptionEn: 'Explore scientific discoveries and research',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 20, 
-                    name: 'História', 
-                    nameEn: 'History',
-                    icon: 'fas fa-landmark', 
-                    description: 'Aprenda sobre eventos históricos e civilizações',
-                    descriptionEn: 'Learn about historical events and civilizations',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 21, 
-                    name: 'Natureza', 
-                    nameEn: 'Nature',
-                    icon: 'fas fa-tree', 
-                    description: 'Explore o mundo natural e conservação',
-                    descriptionEn: 'Explore the natural world and conservation',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 22, 
-                    name: 'DIY & Artesanato', 
-                    nameEn: 'DIY & Crafts',
-                    icon: 'fas fa-tools', 
-                    description: 'Projetos faça você mesmo e artesanato criativo',
-                    descriptionEn: 'Do-it-yourself projects and creative crafts',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 23, 
-                    name: 'Animais', 
-                    nameEn: 'Pets',
-                    icon: 'fas fa-paw', 
-                    description: 'Cuide dos seus pets e descubra conteúdo animal',
-                    descriptionEn: 'Care for your pets and discover animal content',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 24, 
-                    name: 'Moda', 
-                    nameEn: 'Fashion',
-                    icon: 'fas fa-tshirt', 
-                    description: 'Descubra tendências de moda e inspiração de estilo',
-                    descriptionEn: 'Discover fashion trends and style inspiration',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 25, 
-                    name: 'Beleza', 
-                    nameEn: 'Beauty',
-                    icon: 'fas fa-spa', 
-                    description: 'Dicas de beleza, produtos e tutoriais',
-                    descriptionEn: 'Beauty tips, products and tutorials',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 26, 
-                    name: 'Casa & Jardim', 
-                    nameEn: 'Home & Garden',
-                    icon: 'fas fa-home', 
-                    description: 'Melhorias para casa, decoração e jardinagem',
-                    descriptionEn: 'Home improvement, decoration and gardening',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 27, 
-                    name: 'Negócios', 
-                    nameEn: 'Business',
-                    icon: 'fas fa-briefcase', 
-                    description: 'Notícias de negócios, empreendedorismo e gestão',
-                    descriptionEn: 'Business news, entrepreneurship and management',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 28, 
-                    name: 'Carros', 
-                    nameEn: 'Cars',
-                    icon: 'fas fa-car', 
-                    description: 'Notícias automotivas, reviews e manutenção',
-                    descriptionEn: 'Automotive news, reviews and maintenance',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 29, 
-                    name: 'Parentalidade', 
-                    nameEn: 'Parenting',
-                    icon: 'fas fa-baby', 
-                    description: 'Conselhos e recursos para pais e famílias',
-                    descriptionEn: 'Advice and resources for parents and families',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                },
-                { 
-                    id: 30, 
-                    name: 'Espiritualidade', 
-                    nameEn: 'Spirituality',
-                    icon: 'fas fa-pray', 
-                    description: 'Explore práticas espirituais e crenças',
-                    descriptionEn: 'Explore spiritual practices and beliefs',
-                    image: null, 
-                    count: 0, 
-                    isAdult: false 
-                }
+                { id: 1, name: 'Vídeos', nameEn: 'Videos', icon: 'fas fa-video', description: 'Assista e descubra vídeos de várias plataformas', descriptionEn: 'Watch and discover videos from various platforms', count: 0, isAdult: false },
+                { id: 2, name: 'Redes Sociais', nameEn: 'Social Media', icon: 'fas fa-share-alt', description: 'Conecte-se com pessoas e compartilhe conteúdo', descriptionEn: 'Connect with people and share content', count: 0, isAdult: false },
+                { id: 3, name: 'Música', nameEn: 'Music', icon: 'fas fa-music', description: 'Ouça músicas, descubra artistas e playlists', descriptionEn: 'Listen to music, discover artists and playlists', count: 0, isAdult: false },
+                { id: 4, name: 'Educação', nameEn: 'Education', icon: 'fas fa-graduation-cap', description: 'Aprenda novas habilidades e expanda seu conhecimento', descriptionEn: 'Learn new skills and expand your knowledge', count: 0, isAdult: false },
+                { id: 5, name: 'Notícias', nameEn: 'News', icon: 'fas fa-newspaper', description: 'Mantenha-se atualizado com as últimas notícias e eventos', descriptionEn: 'Stay updated with the latest news and events', count: 0, isAdult: false },
+                { id: 6, name: 'Compras', nameEn: 'Shopping', icon: 'fas fa-shopping-cart', description: 'Encontre os melhores negócios e produtos online', descriptionEn: 'Find the best deals and products online', count: 0, isAdult: false },
+                { id: 7, name: 'Conteúdo Adulto', nameEn: 'Adult Content', icon: 'fas fa-exclamation-triangle', description: 'Conteúdo restrito a adultos maiores de 18 anos', descriptionEn: 'Content restricted to adults over 18 years', count: 0, isAdult: true },
+                { id: 8, name: 'Jogos', nameEn: 'Games', icon: 'fas fa-gamepad', description: 'Jogue online e descubra novos títulos', descriptionEn: 'Play online games and discover new titles', count: 0, isAdult: false },
+                { id: 9, name: 'Tecnologia', nameEn: 'Technology', icon: 'fas fa-laptop-code', description: 'Descubra as últimas novidades em tecnologia', descriptionEn: 'Discover the latest in tech and innovation', count: 0, isAdult: false },
+                { id: 10, name: 'Saúde', nameEn: 'Health', icon: 'fas fa-heartbeat', description: 'Informações sobre saúde, bem-estar e medicina', descriptionEn: 'Information about health, wellness and medicine', count: 0, isAdult: false }
             ];
             
             localStorage.setItem('categories', JSON.stringify(categories));
-            updateURLMapping();
-            console.log('✅ Categorias padrão carregadas:', categories.length);
+            console.log('✅ Default categories loaded:', categories.length);
         }
 
         function loadDefaultSubcategories() {
-            console.log('📝 Carregando subcategorias padrão...');
+            console.log('📝 Loading default subcategories...');
             subcategories = [
-                // Subcategories for Videos
                 { id: 1, categoryId: 1, name: 'Canais do YouTube', nameEn: 'YouTube Channels', icon: 'fab fa-youtube', description: 'Melhores canais do YouTube em vários nichos', descriptionEn: 'Best YouTube channels in various niches' },
                 { id: 2, categoryId: 1, name: 'Vídeos do TikTok', nameEn: 'TikTok Videos', icon: 'fab fa-tiktok', description: 'Vídeos e criadores em tendência no TikTok', descriptionEn: 'Trending TikTok videos and creators' },
                 { id: 3, categoryId: 1, name: 'Vídeos Educacionais', nameEn: 'Educational Videos', icon: 'fas fa-chalkboard-teacher', description: 'Vídeos para aprendizado e conhecimento', descriptionEn: 'Videos for learning and knowledge' },
-                { id: 4, categoryId: 1, name: 'Vídeos de Entretenimento', nameEn: 'Entertainment Videos', icon: 'fas fa-film', description: 'Vídeos engraçados, divertidos e virais', descriptionEn: 'Funny, entertaining and viral videos' },
-                
-                // Subcategories for Social Media
                 { id: 5, categoryId: 2, name: 'Perfis do Instagram', nameEn: 'Instagram Profiles', icon: 'fab fa-instagram', description: 'Contas populares do Instagram para seguir', descriptionEn: 'Popular Instagram accounts to follow' },
                 { id: 6, categoryId: 2, name: 'Páginas do Facebook', nameEn: 'Facebook Pages', icon: 'fab fa-facebook', description: 'Páginas e grupos interessantes do Facebook', descriptionEn: 'Interesting Facebook pages and groups' },
-                { id: 7, categoryId: 2, name: 'Contas do Twitter', nameEn: 'Twitter Accounts', icon: 'fab fa-twitter', description: 'Contas influentes do Twitter para seguir', descriptionEn: 'Influential Twitter accounts to follow' },
-                { id: 8, categoryId: 2, name: 'Perfis do LinkedIn', nameEn: 'LinkedIn Profiles', icon: 'fab fa-linkedin', description: 'Perfis e páginas profissionais do LinkedIn', descriptionEn: 'Professional LinkedIn profiles and pages' },
-                
-                // Subcategories for Music
                 { id: 9, categoryId: 3, name: 'Playlists do Spotify', nameEn: 'Spotify Playlists', icon: 'fab fa-spotify', description: 'Playlists de música curadas para cada humor', descriptionEn: 'Curated music playlists for every mood' },
                 { id: 10, categoryId: 3, name: 'Artistas Musicais', nameEn: 'Music Artists', icon: 'fas fa-microphone', description: 'Artistas musicais populares e emergentes', descriptionEn: 'Popular and emerging music artists' },
-                { id: 11, categoryId: 3, name: 'Gêneros Musicais', nameEn: 'Music Genres', icon: 'fas fa-music', description: 'Explore diferentes gêneros musicais', descriptionEn: 'Explore different music genres' },
-                { id: 12, categoryId: 3, name: 'Vídeos Musicais', nameEn: 'Music Videos', icon: 'fas fa-video', description: 'Vídeos musicais oficiais e performances', descriptionEn: 'Official music videos and performances' },
-                
-                // Subcategories for Education
                 { id: 13, categoryId: 4, name: 'Cursos Online', nameEn: 'Online Courses', icon: 'fas fa-laptop', description: 'Plataformas e cursos para aprendizado online', descriptionEn: 'Platforms and courses for online learning' },
-                { id: 14, categoryId: 4, name: 'Tutoriais', nameEn: 'Tutorials', icon: 'fas fa-book-open', description: 'Tutoriais passo a passo para várias habilidades', descriptionEn: 'Step-by-step tutorials for various skills' },
-                { id: 15, categoryId: 4, name: 'Sites Educacionais', nameEn: 'Educational Websites', icon: 'fas fa-globe', description: 'Sites com conteúdo educacional', descriptionEn: 'Websites with educational content' },
-                { id: 16, categoryId: 4, name: 'Aprendizado de Idiomas', nameEn: 'Language Learning', icon: 'fas fa-language', description: 'Recursos para aprender novos idiomas', descriptionEn: 'Resources for learning new languages' },
-                
-                // Subcategories for Adult Content
-                { id: 17, categoryId: 7, name: 'Vídeos Adultos', nameEn: 'Adult Videos', icon: 'fas fa-video', description: 'Plataformas de conteúdo de vídeo adulto', descriptionEn: 'Adult video content platforms' },
-                { id: 18, categoryId: 7, name: 'Sites Adultos', nameEn: 'Adult Websites', icon: 'fas fa-globe', description: 'Sites com conteúdo adulto', descriptionEn: 'Websites with adult content' },
-                { id: 19, categoryId: 7, name: 'Redes Sociais Adultas', nameEn: 'Adult Social Networks', icon: 'fas fa-users', description: 'Redes sociais para adultos', descriptionEn: 'Social networks for adults' },
-                
-                // Subcategories for Games
-                { id: 20, categoryId: 8, name: 'Jogos Online', nameEn: 'Online Games', icon: 'fas fa-gamepad', description: 'Jogue diretamente no seu navegador', descriptionEn: 'Play games directly in your browser' },
-                { id: 21, categoryId: 8, name: 'Reviews de Jogos', nameEn: 'Game Reviews', icon: 'fas fa-star', description: 'Reviews e avaliações de jogos populares', descriptionEn: 'Reviews and ratings of popular games' },
-                { id: 22, categoryId: 8, name: 'Comunidades de Jogos', nameEn: 'Gaming Communities', icon: 'fas fa-users', description: 'Comunidades online para gamers', descriptionEn: 'Online communities for gamers' },
-                { id: 23, categoryId: 8, name: 'Desenvolvimento de Jogos', nameEn: 'Game Development', icon: 'fas fa-code', description: 'Recursos para desenvolvedores de jogos', descriptionEn: 'Resources for game developers' }
+                { id: 14, categoryId: 4, name: 'Tutoriais', nameEn: 'Tutorials', icon: 'fas fa-book-open', description: 'Tutoriais passo a passo para várias habilidades', descriptionEn: 'Step-by-step tutorials for various skills' }
             ];
             
             localStorage.setItem('subcategories', JSON.stringify(subcategories));
-            console.log('✅ Subcategorias padrão carregadas:', subcategories.length);
+            console.log('✅ Default subcategories loaded:', subcategories.length);
         }
 
         function loadDefaultLinks() {
-            console.log('📝 Carregando links padrão...');
+            console.log('📝 Loading default links...');
             links = [
-                { 
-                    id: 1, 
-                    title: 'YouTube - Music Videos', 
-                    url: 'https://youtube.com', 
-                    description: 'Watch the latest music videos from your favorite artists', 
-                    categoryId: 1, 
-                    subcategoryId: 1, 
-                    icon: 'fab fa-youtube', 
-                    type: 'youtube', 
-                    isFeatured: true 
-                },
-                { 
-                    id: 2, 
-                    title: 'Instagram - Photography', 
-                    url: 'https://instagram.com', 
-                    description: 'Share your photos and connect with others', 
-                    categoryId: 2, 
-                    subcategoryId: 5, 
-                    icon: 'fab fa-instagram', 
-                    type: 'instagram', 
-                    isFeatured: true 
-                },
-                { 
-                    id: 3, 
-                    title: 'Spotify - Top Charts', 
-                    url: 'https://spotify.com', 
-                    description: 'Listen to the most popular songs right now', 
-                    categoryId: 3, 
-                    subcategoryId: 9, 
-                    icon: 'fab fa-spotify', 
-                    type: 'spotify', 
-                    isFeatured: true 
-                },
-                { 
-                    id: 4, 
-                    title: 'Coursera - Online Learning', 
-                    url: 'https://coursera.org', 
-                    description: 'Take online courses from top universities', 
-                    categoryId: 4, 
-                    subcategoryId: 13, 
-                    icon: 'fas fa-graduation-cap', 
-                    type: 'website', 
-                    isFeatured: true 
-                },
-                { 
-                    id: 5, 
-                    title: 'BBC News - World', 
-                    url: 'https://bbc.com/news', 
-                    description: 'Latest world news and current affairs', 
-                    categoryId: 5, 
-                    subcategoryId: null, 
-                    icon: 'fas fa-newspaper', 
-                    type: 'website', 
-                    isFeatured: true 
-                },
-                { 
-                    id: 6, 
-                    title: 'Amazon - Shopping', 
-                    url: 'https://amazon.com', 
-                    description: 'Shop for millions of products online', 
-                    categoryId: 6, 
-                    subcategoryId: null, 
-                    icon: 'fas fa-shopping-cart', 
-                    type: 'website', 
-                    isFeatured: true 
-                }
+                { id: 1, title: 'YouTube - Music Videos', url: 'https://youtube.com', description: 'Watch the latest music videos from your favorite artists', categoryId: 1, subcategoryId: 1, icon: 'fab fa-youtube', type: 'youtube', isFeatured: true },
+                { id: 2, title: 'Instagram - Photography', url: 'https://instagram.com', description: 'Share your photos and connect with others', categoryId: 2, subcategoryId: 5, icon: 'fab fa-instagram', type: 'instagram', isFeatured: true },
+                { id: 3, title: 'Spotify - Top Charts', url: 'https://spotify.com', description: 'Listen to the most popular songs right now', categoryId: 3, subcategoryId: 9, icon: 'fab fa-spotify', type: 'spotify', isFeatured: true },
+                { id: 4, title: 'Coursera - Online Learning', url: 'https://coursera.org', description: 'Take online courses from top universities', categoryId: 4, subcategoryId: 13, icon: 'fas fa-graduation-cap', type: 'website', isFeatured: true },
+                { id: 5, title: 'BBC News - World', url: 'https://bbc.com/news', description: 'Latest world news and current affairs', categoryId: 5, subcategoryId: null, icon: 'fas fa-newspaper', type: 'website', isFeatured: true },
+                { id: 6, title: 'Amazon - Shopping', url: 'https://amazon.com', description: 'Shop for millions of products online', categoryId: 6, subcategoryId: null, icon: 'fas fa-shopping-cart', type: 'website', isFeatured: true }
             ];
             
             localStorage.setItem('links', JSON.stringify(links));
-            console.log('✅ Links padrão carregados:', links.length);
+            console.log('✅ Default links loaded:', links.length);
         }
 
         function showWarningBanner() {
             const banner = document.getElementById('tempWarningBanner');
             const countdownElement = document.getElementById('countdownTimer');
             
-            banner.style.display = 'block';
-            
-            let seconds = 6;
-            const countdown = setInterval(() => {
-                seconds--;
-                countdownElement.textContent = `${seconds}s`;
+            if (banner && countdownElement) {
+                banner.style.display = 'block';
                 
-                if (seconds <= 0) {
-                    clearInterval(countdown);
-                    banner.style.display = 'none';
-                }
-            }, 1000);
+                let seconds = 6;
+                const countdown = setInterval(() => {
+                    seconds--;
+                    countdownElement.textContent = `${seconds}s`;
+                    
+                    if (seconds <= 0) {
+                        clearInterval(countdown);
+                        banner.style.display = 'none';
+                    }
+                }, 1000);
+            }
         }
 
         function closeWarningBanner() {
-            document.getElementById('tempWarningBanner').style.display = 'none';
+            const banner = document.getElementById('tempWarningBanner');
+            if (banner) banner.style.display = 'none';
         }
 
         function acceptCookies() {
             localStorage.setItem('cookiesAccepted', 'true');
-            document.getElementById('cookieBanner').style.display = 'none';
+            const cookieBanner = document.getElementById('cookieBanner');
+            if (cookieBanner) cookieBanner.style.display = 'none';
         }
 
         function changeLanguage(lang) {
             currentLanguage = lang;
             
             // Update language buttons
-            document.getElementById('langBtnPt').classList.toggle('active', lang === 'pt');
-            document.getElementById('langBtnEn').classList.toggle('active', lang === 'en');
+            const langBtnPt = document.getElementById('langBtnPt');
+            const langBtnEn = document.getElementById('langBtnEn');
+            if (langBtnPt && langBtnEn) {
+                langBtnPt.classList.toggle('active', lang === 'pt');
+                langBtnEn.classList.toggle('active', lang === 'en');
+            }
             
             // Update all text content
             updateTextContent();
@@ -2003,20 +1538,19 @@
 
         function updateCounts() {
             // Update link count
-            document.getElementById('totalLinks').textContent = links.length;
+            const totalLinksElement = document.getElementById('totalLinks');
+            if (totalLinksElement) totalLinksElement.textContent = links.length;
             
             // Update category count
-            document.getElementById('totalCategories').textContent = categories.length;
+            const totalCategoriesElement = document.getElementById('totalCategories');
+            if (totalCategoriesElement) totalCategoriesElement.textContent = categories.length;
             
             // Update featured count
-            const featuredCount = links.filter(link => link.isFeatured).length;
-            document.getElementById('featuredCount').textContent = featuredCount;
-            
-            console.log('📊 Contagens atualizadas:', {
-                links: links.length,
-                categories: categories.length,
-                featured: featuredCount
-            });
+            const featuredCountElement = document.getElementById('featuredCount');
+            if (featuredCountElement) {
+                const featuredCount = links.filter(link => link.isFeatured).length;
+                featuredCountElement.textContent = featuredCount;
+            }
         }
 
         function loadCategories() {
@@ -2038,11 +1572,11 @@
                         <p>${currentLanguage === 'pt' ? 'Nenhuma categoria encontrada.' : 'No categories found.'}</p>
                     </div>
                 `;
-                showMoreContainer.style.display = 'none';
+                if (showMoreContainer) showMoreContainer.style.display = 'none';
                 return;
             }
             
-            console.log('📁 Carregando categorias:', categoriesToShow.length);
+            console.log('📁 Loading categories:', categoriesToShow.length);
             
             // Create category cards
             categoriesToShow.forEach(category => {
@@ -2051,7 +1585,7 @@
                 
                 // Use event listener instead of onclick for better compatibility
                 categoryCard.addEventListener('click', function() {
-                    console.log('🎯 Categoria clicada:', category.name);
+                    console.log('🎯 Category clicked:', category.name);
                     openCategory(category);
                 });
                 
@@ -2062,10 +1596,7 @@
                 const linkCount = links.filter(link => link.categoryId === category.id).length;
                 
                 categoryCard.innerHTML = `
-                    ${category.image 
-                        ? `<img src="${category.image}" alt="${categoryName}" class="category-image">` 
-                        : `<div class="category-icon"><i class="${category.icon}"></i></div>`
-                    }
+                    <div class="category-icon"><i class="${category.icon}"></i></div>
                     <h3>${categoryName}</h3>
                     ${category.isAdult ? '<span class="adult-category-warning">+18</span>' : ''}
                     <div class="category-count">${linkCount}</div>
@@ -2076,20 +1607,24 @@
             });
             
             // Show "Show More" button if there are more categories
-            if (categories.length > 12) {
-                showMoreContainer.style.display = 'block';
-                const showMoreBtn = showMoreContainer.querySelector('.show-more-btn');
-                const showMoreText = document.getElementById('showMoreText');
-                
-                if (showAllCategories) {
-                    showMoreText.textContent = currentLanguage === 'pt' ? 'Mostrar Menos Categorias' : 'Show Less Categories';
-                    showMoreBtn.innerHTML = `<i class="fas fa-chevron-up"></i> <span id="showMoreText">${currentLanguage === 'pt' ? 'Mostrar Menos Categorias' : 'Show Less Categories'}</span>`;
+            if (showMoreContainer) {
+                if (categories.length > 12) {
+                    showMoreContainer.style.display = 'block';
+                    const showMoreBtn = showMoreContainer.querySelector('.show-more-btn');
+                    const showMoreText = document.getElementById('showMoreText');
+                    
+                    if (showMoreBtn && showMoreText) {
+                        if (showAllCategories) {
+                            showMoreText.textContent = currentLanguage === 'pt' ? 'Mostrar Menos Categorias' : 'Show Less Categories';
+                            showMoreBtn.innerHTML = `<i class="fas fa-chevron-up"></i> <span id="showMoreText">${currentLanguage === 'pt' ? 'Mostrar Menos Categorias' : 'Show Less Categories'}</span>`;
+                        } else {
+                            showMoreText.textContent = currentLanguage === 'pt' ? 'Mostrar Mais Categorias' : 'Show More Categories';
+                            showMoreBtn.innerHTML = `<i class="fas fa-chevron-down"></i> <span id="showMoreText">${currentLanguage === 'pt' ? 'Mostrar Mais Categorias' : 'Show More Categories'}</span>`;
+                        }
+                    }
                 } else {
-                    showMoreText.textContent = currentLanguage === 'pt' ? 'Mostrar Mais Categorias' : 'Show More Categories';
-                    showMoreBtn.innerHTML = `<i class="fas fa-chevron-down"></i> <span id="showMoreText">${currentLanguage === 'pt' ? 'Mostrar Mais Categorias' : 'Show More Categories'}</span>`;
+                    showMoreContainer.style.display = 'none';
                 }
-            } else {
-                showMoreContainer.style.display = 'none';
             }
         }
 
@@ -2099,11 +1634,11 @@
         }
 
         function openCategory(category) {
-            console.log('📂 Abrindo categoria:', category.name);
+            console.log('📂 Opening category:', category.name);
             
             // If it's the adult category, show age verification
             if (category.isAdult) {
-                console.log('🔞 Verificação de idade necessária');
+                console.log('🔞 Age verification required');
                 showAgeVerification();
                 return;
             }
@@ -2114,20 +1649,25 @@
             updateURL(category);
             
             // Hide categories and search results
-            document.querySelector('.categories').style.display = 'none';
-            document.getElementById('searchResultsSection').style.display = 'none';
+            const categoriesSection = document.querySelector('.categories');
+            const searchResultsSection = document.getElementById('searchResultsSection');
+            if (categoriesSection) categoriesSection.style.display = 'none';
+            if (searchResultsSection) searchResultsSection.style.display = 'none';
             
             // Show subcategories section
             const subcategoriesSection = document.getElementById('subcategoriesSection');
-            subcategoriesSection.style.display = 'block';
+            if (subcategoriesSection) subcategoriesSection.style.display = 'block';
             
             // Show back button
-            document.getElementById('backToCategoriesBtn').style.display = 'flex';
+            const backToCategoriesBtn = document.getElementById('backToCategoriesBtn');
+            if (backToCategoriesBtn) backToCategoriesBtn.style.display = 'flex';
             
             // Update subcategories title
             const subcategoriesTitle = document.getElementById('subcategoriesTitle');
-            const categoryName = currentLanguage === 'pt' ? category.name : category.nameEn;
-            subcategoriesTitle.innerHTML = `<i class="fas fa-folder-open"></i> ${categoryName}`;
+            if (subcategoriesTitle) {
+                const categoryName = currentLanguage === 'pt' ? category.name : category.nameEn;
+                subcategoriesTitle.innerHTML = `<i class="fas fa-folder-open"></i> ${categoryName}`;
+            }
             
             // Load subcategories
             loadSubcategories(category);
@@ -2145,21 +1685,25 @@
             // Get subcategories for this category
             const categorySubcategories = subcategories.filter(sub => sub.categoryId === category.id);
             
-            console.log('📂 Carregando subcategorias:', categorySubcategories.length);
+            console.log('📂 Loading subcategories:', categorySubcategories.length);
             
             if (categorySubcategories.length === 0) {
                 // If no subcategories, show all links in this category
-                subcategoriesInfo.textContent = currentLanguage === 'pt' 
-                    ? `Mostrando todos os links da categoria ${currentLanguage === 'pt' ? category.name : category.nameEn}` 
-                    : `Showing all links in category ${currentLanguage === 'pt' ? category.name : category.nameEn}`;
+                if (subcategoriesInfo) {
+                    subcategoriesInfo.textContent = currentLanguage === 'pt' 
+                        ? `Mostrando todos os links da categoria ${currentLanguage === 'pt' ? category.name : category.nameEn}` 
+                        : `Showing all links in category ${currentLanguage === 'pt' ? category.name : category.nameEn}`;
+                }
                 
                 loadLinksForCategory(category.id);
                 return;
             }
             
-            subcategoriesInfo.textContent = currentLanguage === 'pt' 
-                ? `Escolha uma subcategoria para ver os links relacionados` 
-                : `Choose a subcategory to see related links`;
+            if (subcategoriesInfo) {
+                subcategoriesInfo.textContent = currentLanguage === 'pt' 
+                    ? `Escolha uma subcategoria para ver os links relacionados` 
+                    : `Choose a subcategory to see related links`;
+            }
             
             // Create subcategory cards
             categorySubcategories.forEach(subcategory => {
@@ -2168,7 +1712,7 @@
                 
                 // Use event listener instead of onclick
                 subcategoryCard.addEventListener('click', function() {
-                    console.log('🎯 Subcategoria clicada:', subcategory.name);
+                    console.log('🎯 Subcategory clicked:', subcategory.name);
                     openSubcategory(subcategory);
                 });
                 
@@ -2190,7 +1734,7 @@
         }
 
         function openSubcategory(subcategory) {
-            console.log('📂 Abrindo subcategoria:', subcategory.name);
+            console.log('📂 Opening subcategory:', subcategory.name);
             currentSubcategory = subcategory;
             loadLinksForSubcategory(subcategory.id);
         }
@@ -2198,13 +1742,15 @@
         function loadLinksForCategory(categoryId) {
             const subcategoriesGrid = document.getElementById('subcategoriesGrid');
             
+            if (!subcategoriesGrid) return;
+            
             // Clear the grid
             subcategoriesGrid.innerHTML = '';
             
             // Get links for this category
             const categoryLinks = links.filter(link => link.categoryId === categoryId);
             
-            console.log('🔗 Carregando links da categoria:', categoryLinks.length);
+            console.log('🔗 Loading category links:', categoryLinks.length);
             
             if (categoryLinks.length === 0) {
                 subcategoriesGrid.innerHTML = `
@@ -2229,11 +1775,14 @@
             
             // Update info text
             const subcategory = subcategories.find(sub => sub.id === subcategoryId);
-            const subcategoryName = currentLanguage === 'pt' ? subcategory.name : subcategory.nameEn;
+            if (subcategory && subcategoriesInfo) {
+                const subcategoryName = currentLanguage === 'pt' ? subcategory.name : subcategory.nameEn;
+                subcategoriesInfo.textContent = currentLanguage === 'pt' 
+                    ? `Mostrando links da subcategoria "${subcategoryName}"` 
+                    : `Showing links from subcategory "${subcategoryName}"`;
+            }
             
-            subcategoriesInfo.textContent = currentLanguage === 'pt' 
-                ? `Mostrando links da subcategoria "${subcategoryName}"` 
-                : `Showing links from subcategory "${subcategoryName}"`;
+            if (!subcategoriesGrid) return;
             
             // Clear the grid
             subcategoriesGrid.innerHTML = '';
@@ -2241,7 +1790,7 @@
             // Get links for this subcategory
             const subcategoryLinks = links.filter(link => link.subcategoryId === subcategoryId);
             
-            console.log('🔗 Carregando links da subcategoria:', subcategoryLinks.length);
+            console.log('🔗 Loading subcategory links:', subcategoryLinks.length);
             
             if (subcategoryLinks.length === 0) {
                 subcategoriesGrid.innerHTML = `
@@ -2296,7 +1845,7 @@
         }
 
         function backToCategories() {
-            console.log('↩️ Voltando para categorias');
+            console.log('↩️ Returning to categories');
             currentCategory = null;
             currentSubcategory = null;
             
@@ -2304,27 +1853,34 @@
             updateURL();
             
             // Hide subcategories and search results
-            document.getElementById('subcategoriesSection').style.display = 'none';
-            document.getElementById('searchResultsSection').style.display = 'none';
+            const subcategoriesSection = document.getElementById('subcategoriesSection');
+            const searchResultsSection = document.getElementById('searchResultsSection');
+            if (subcategoriesSection) subcategoriesSection.style.display = 'none';
+            if (searchResultsSection) searchResultsSection.style.display = 'none';
             
             // Hide back buttons
-            document.getElementById('backToCategoriesBtn').style.display = 'none';
-            document.getElementById('backToCategoriesFromSearchBtn').style.display = 'none';
+            const backToCategoriesBtn = document.getElementById('backToCategoriesBtn');
+            const backToCategoriesFromSearchBtn = document.getElementById('backToCategoriesFromSearchBtn');
+            if (backToCategoriesBtn) backToCategoriesBtn.style.display = 'none';
+            if (backToCategoriesFromSearchBtn) backToCategoriesFromSearchBtn.style.display = 'none';
             
             // Show categories
-            document.querySelector('.categories').style.display = 'block';
+            const categoriesSection = document.querySelector('.categories');
+            if (categoriesSection) categoriesSection.style.display = 'block';
         }
 
         function showAgeVerification() {
-            document.getElementById('ageVerificationModal').style.display = 'block';
+            const modal = document.getElementById('ageVerificationModal');
+            if (modal) modal.style.display = 'block';
         }
 
         function closeAgeVerification() {
-            document.getElementById('ageVerificationModal').style.display = 'none';
+            const modal = document.getElementById('ageVerificationModal');
+            if (modal) modal.style.display = 'none';
         }
 
         function proceedToAdultContent() {
-            console.log('🔞 Acessando conteúdo adulto');
+            console.log('🔞 Accessing adult content');
             // Redirect to adult-content.html
             window.location.href = 'adult-content.html';
         }
@@ -2510,27 +2066,34 @@
                 return;
             }
             
-            console.log('🔍 Executando pesquisa:', query);
+            console.log('🔍 Performing search:', query);
             
             // Hide categories and subcategories
-            document.querySelector('.categories').style.display = 'none';
-            document.getElementById('subcategoriesSection').style.display = 'none';
+            const categoriesSection = document.querySelector('.categories');
+            const subcategoriesSection = document.getElementById('subcategoriesSection');
+            if (categoriesSection) categoriesSection.style.display = 'none';
+            if (subcategoriesSection) subcategoriesSection.style.display = 'none';
             
             // Show search results section
             const searchResultsSection = document.getElementById('searchResultsSection');
-            searchResultsSection.style.display = 'block';
+            if (searchResultsSection) searchResultsSection.style.display = 'block';
             
             // Show back button
-            document.getElementById('backToCategoriesFromSearchBtn').style.display = 'flex';
+            const backToCategoriesFromSearchBtn = document.getElementById('backToCategoriesFromSearchBtn');
+            if (backToCategoriesFromSearchBtn) backToCategoriesFromSearchBtn.style.display = 'flex';
             
             // Update search results info
             const searchResultsInfo = document.getElementById('searchResultsInfo');
-            searchResultsInfo.textContent = currentLanguage === 'pt' 
-                ? `Resultados para "${query}"` 
-                : `Results for "${query}"`;
+            if (searchResultsInfo) {
+                searchResultsInfo.textContent = currentLanguage === 'pt' 
+                    ? `Resultados para "${query}"` 
+                    : `Results for "${query}"`;
+            }
             
             // Clear previous results
             const searchResultsGrid = document.getElementById('searchResultsGrid');
+            if (!searchResultsGrid) return;
+            
             searchResultsGrid.innerHTML = '';
             
             // Find matching links
@@ -2541,7 +2104,7 @@
                        link.url.toLowerCase().includes(lowerQuery);
             });
             
-            console.log('🔍 Resultados da pesquisa:', matchingLinks.length);
+            console.log('🔍 Search results:', matchingLinks.length);
             
             if (matchingLinks.length === 0) {
                 searchResultsGrid.innerHTML = `
@@ -2561,7 +2124,8 @@
             });
             
             // Hide search suggestions
-            document.getElementById('searchSuggestions').style.display = 'none';
+            const searchSuggestions = document.getElementById('searchSuggestions');
+            if (searchSuggestions) searchSuggestions.style.display = 'none';
         }
 
         function loadFeaturedLinks() {
@@ -2575,7 +2139,7 @@
             // Get featured links
             const featuredLinks = links.filter(link => link.isFeatured);
             
-            console.log('⭐ Carregando links em destaque:', featuredLinks.length);
+            console.log('⭐ Loading featured links:', featuredLinks.length);
             
             if (featuredLinks.length === 0) {
                 featuredGrid.innerHTML = `
@@ -2597,37 +2161,5 @@
         // Initialize text content
         updateTextContent();
     </script>
-
-<!-- Dados injetados pelo Admin Local -->
-<script>
-// Verifica se já foi executado para evitar loop
-if (!window.dataInjected) {
-    window.dataInjected = true;
-    
-    const restoreData = {"categories":[{"id":1,"name":"Vídeos","nameEn":"Videos","icon":"fas fa-video","description":"Assista e descubra vídeos de várias plataformas","descriptionEn":"Watch and discover videos from various platforms","image":null,"count":1,"isAdult":false},{"id":2,"name":"Redes Sociais","nameEn":"Social Media","icon":"fas fa-share-alt","description":"Conecte-se com pessoas e compartilhe conteúdo","descriptionEn":"Connect with people and share content","image":null,"count":0,"isAdult":false},{"id":3,"name":"Música","nameEn":"Music","icon":"fas fa-music","description":"Ouça músicas, descubra artistas e playlists","descriptionEn":"Listen to music, discover artists and playlists","image":null,"count":0,"isAdult":false},{"id":4,"name":"Educação","nameEn":"Education","icon":"fas fa-graduation-cap","description":"Aprenda novas habilidades e expanda seu conhecimento","descriptionEn":"Learn new skills and expand your knowledge","image":null,"count":0,"isAdult":false},{"id":5,"name":"Notícias","nameEn":"News","icon":"fas fa-newspaper","description":"Mantenha-se atualizado com as últimas notícias e eventos","descriptionEn":"Stay updated with the latest news and events","image":null,"count":0,"isAdult":false},{"id":6,"name":"Compras","nameEn":"Shopping","icon":"fas fa-shopping-cart","description":"Encontre os melhores negócios e produtos online","descriptionEn":"Find the best deals and products online","image":null,"count":0,"isAdult":false},{"id":7,"name":"Conteúdo Adulto","nameEn":"Adult Content","icon":"fas fa-exclamation-triangle","description":"Conteúdo restrito a adultos maiores de 18 anos","descriptionEn":"Content restricted to adults over 18 years","image":null,"count":0,"isAdult":true},{"id":8,"name":"Jogos","nameEn":"Games","icon":"fas fa-gamepad","description":"Jogue online e descubra novos títulos","descriptionEn":"Play online games and discover new titles","image":null,"count":0,"isAdult":false},{"id":9,"name":"Tecnologia","nameEn":"Technology","icon":"fas fa-laptop-code","description":"Descubra as últimas novidades em tecnologia","descriptionEn":"Discover the latest in tech and innovation","image":null,"count":0,"isAdult":false},{"id":10,"name":"Saúde","nameEn":"Health","icon":"fas fa-heartbeat","description":"Informações sobre saúde, bem-estar e medicina","descriptionEn":"Information about health, wellness and medicine","image":null,"count":0,"isAdult":false},{"id":11,"name":"Viagem","nameEn":"Travel","icon":"fas fa-plane","description":"Planeje suas viagens e descubra novos destinos","descriptionEn":"Plan your trips and discover new destinations","image":null,"count":0,"isAdult":false},{"id":12,"name":"Comida","nameEn":"Food","icon":"fas fa-utensils","description":"Receitas, restaurantes e experiências culinárias","descriptionEn":"Recipes, restaurants and culinary experiences","image":null,"count":0,"isAdult":false},{"id":13,"name":"Esportes","nameEn":"Sports","icon":"fas fa-running","description":"Acompanhe seus esportes e atletas favoritos","descriptionEn":"Follow your favorite sports and athletes","image":null,"count":0,"isAdult":false},{"id":14,"name":"Finanças","nameEn":"Finance","icon":"fas fa-chart-line","description":"Gerencie seu dinheiro e investimentos","descriptionEn":"Manage your money and investments","image":null,"count":0,"isAdult":false},{"id":15,"name":"Arte","nameEn":"Art","icon":"fas fa-palette","description":"Explore artes visuais, design e criatividade","descriptionEn":"Explore visual arts, design and creativity","image":null,"count":0,"isAdult":false},{"id":16,"name":"Livros","nameEn":"Books","icon":"fas fa-book","description":"Descubra livros, autores e obras literárias","descriptionEn":"Discover books, authors and literary works","image":null,"count":0,"isAdult":false},{"id":17,"name":"Filmes","nameEn":"Movies","icon":"fas fa-film","description":"Assista filmes, séries e documentários","descriptionEn":"Watch movies, series and documentaries","image":null,"count":0,"isAdult":false},{"id":18,"name":"Fotografia","nameEn":"Photography","icon":"fas fa-camera","description":"Aprenda técnicas e mostre seu trabalho","descriptionEn":"Learn photography techniques and showcase your work","image":null,"count":0,"isAdult":false},{"id":19,"name":"Ciência","nameEn":"Science","icon":"fas fa-flask","description":"Explore descobertas científicas e pesquisas","descriptionEn":"Explore scientific discoveries and research","image":null,"count":0,"isAdult":false},{"id":20,"name":"História","nameEn":"History","icon":"fas fa-landmark","description":"Aprenda sobre eventos históricos e civilizações","descriptionEn":"Learn about historical events and civilizations","image":null,"count":0,"isAdult":false},{"id":21,"name":"Natureza","nameEn":"Nature","icon":"fas fa-tree","description":"Explore o mundo natural e conservação","descriptionEn":"Explore the natural world and conservation","image":null,"count":0,"isAdult":false},{"id":22,"name":"DIY & Artesanato","nameEn":"DIY & Crafts","icon":"fas fa-tools","description":"Projetos faça você mesmo e artesanato criativo","descriptionEn":"Do-it-yourself projects and creative crafts","image":null,"count":0,"isAdult":false},{"id":23,"name":"Animais","nameEn":"Pets","icon":"fas fa-paw","description":"Cuide dos seus pets e descubra conteúdo animal","descriptionEn":"Care for your pets and discover animal content","image":null,"count":0,"isAdult":false},{"id":24,"name":"Moda","nameEn":"Fashion","icon":"fas fa-tshirt","description":"Descubra tendências de moda e inspiração de estilo","descriptionEn":"Discover fashion trends and style inspiration","image":null,"count":0,"isAdult":false},{"id":25,"name":"Beleza","nameEn":"Beauty","icon":"fas fa-spa","description":"Dicas de beleza, produtos e tutoriais","descriptionEn":"Beauty tips, products and tutorials","image":null,"count":0,"isAdult":false},{"id":26,"name":"Casa & Jardim","nameEn":"Home & Garden","icon":"fas fa-home","description":"Melhorias para casa, decoração e jardinagem","descriptionEn":"Home improvement, decoration and gardening","image":null,"count":0,"isAdult":false},{"id":27,"name":"Negócios","nameEn":"Business","icon":"fas fa-briefcase","description":"Notícias de negócios, empreendedorismo e gestão","descriptionEn":"Business news, entrepreneurship and management","image":null,"count":0,"isAdult":false},{"id":28,"name":"Carros","nameEn":"Cars","icon":"fas fa-car","description":"Notícias automotivas, reviews e manutenção","descriptionEn":"Automotive news, reviews and maintenance","image":null,"count":0,"isAdult":false},{"id":29,"name":"Parentalidade","nameEn":"Parenting","icon":"fas fa-baby","description":"Conselhos e recursos para pais e famílias","descriptionEn":"Advice and resources for parents and families","image":null,"count":0,"isAdult":false},{"id":30,"name":"Espiritualidade","nameEn":"Spirituality","icon":"fas fa-pray","description":"Explore práticas espirituais e crenças","descriptionEn":"Explore spiritual practices and beliefs","image":null,"count":0,"isAdult":false},{"id":1761823658020,"name":"bamdadas","description":"","icon":"fas fa-film","image":null,"count":0,"isAdult":false}],"subcategories":[{"id":1,"categoryId":1,"name":"Canais do YouTube","nameEn":"YouTube Channels","icon":"fab fa-youtube","description":"Melhores canais do YouTube em vários nichos","descriptionEn":"Best YouTube channels in various niches"},{"id":2,"categoryId":1,"name":"Vídeos do TikTok","nameEn":"TikTok Videos","icon":"fab fa-tiktok","description":"Vídeos e criadores em tendência no TikTok","descriptionEn":"Trending TikTok videos and creators"},{"id":3,"categoryId":1,"name":"Vídeos Educacionais","nameEn":"Educational Videos","icon":"fas fa-chalkboard-teacher","description":"Vídeos para aprendizado e conhecimento","descriptionEn":"Videos for learning and knowledge"},{"id":4,"categoryId":1,"name":"Vídeos de Entretenimento","nameEn":"Entertainment Videos","icon":"fas fa-film","description":"Vídeos engraçados, divertidos e virais","descriptionEn":"Funny, entertaining and viral videos"},{"id":5,"categoryId":2,"name":"Perfis do Instagram","nameEn":"Instagram Profiles","icon":"fab fa-instagram","description":"Contas populares do Instagram para seguir","descriptionEn":"Popular Instagram accounts to follow"},{"id":6,"categoryId":2,"name":"Páginas do Facebook","nameEn":"Facebook Pages","icon":"fab fa-facebook","description":"Páginas e grupos interessantes do Facebook","descriptionEn":"Interesting Facebook pages and groups"},{"id":7,"categoryId":2,"name":"Contas do Twitter","nameEn":"Twitter Accounts","icon":"fab fa-twitter","description":"Contas influentes do Twitter para seguir","descriptionEn":"Influential Twitter accounts to follow"},{"id":8,"categoryId":2,"name":"Perfis do LinkedIn","nameEn":"LinkedIn Profiles","icon":"fab fa-linkedin","description":"Perfis e páginas profissionais do LinkedIn","descriptionEn":"Professional LinkedIn profiles and pages"},{"id":9,"categoryId":3,"name":"Playlists do Spotify","nameEn":"Spotify Playlists","icon":"fab fa-spotify","description":"Playlists de música curadas para cada humor","descriptionEn":"Curated music playlists for every mood"},{"id":10,"categoryId":3,"name":"Artistas Musicais","nameEn":"Music Artists","icon":"fas fa-microphone","description":"Artistas musicais populares e emergentes","descriptionEn":"Popular and emerging music artists"},{"id":11,"categoryId":3,"name":"Gêneros Musicais","nameEn":"Music Genres","icon":"fas fa-music","description":"Explore diferentes gêneros musicais","descriptionEn":"Explore different music genres"},{"id":12,"categoryId":3,"name":"Vídeos Musicais","nameEn":"Music Videos","icon":"fas fa-video","description":"Vídeos musicais oficiais e performances","descriptionEn":"Official music videos and performances"},{"id":13,"categoryId":4,"name":"Cursos Online","nameEn":"Online Courses","icon":"fas fa-laptop","description":"Plataformas e cursos para aprendizado online","descriptionEn":"Platforms and courses for online learning"},{"id":14,"categoryId":4,"name":"Tutoriais","nameEn":"Tutorials","icon":"fas fa-book-open","description":"Tutoriais passo a passo para várias habilidades","descriptionEn":"Step-by-step tutorials for various skills"},{"id":15,"categoryId":4,"name":"Sites Educacionais","nameEn":"Educational Websites","icon":"fas fa-globe","description":"Sites com conteúdo educacional","descriptionEn":"Websites with educational content"},{"id":16,"categoryId":4,"name":"Aprendizado de Idiomas","nameEn":"Language Learning","icon":"fas fa-language","description":"Recursos para aprender novos idiomas","descriptionEn":"Resources for learning new languages"},{"id":17,"categoryId":7,"name":"Vídeos Adultos","nameEn":"Adult Videos","icon":"fas fa-video","description":"Plataformas de conteúdo de vídeo adulto","descriptionEn":"Adult video content platforms"},{"id":18,"categoryId":7,"name":"Sites Adultos","nameEn":"Adult Websites","icon":"fas fa-globe","description":"Sites com conteúdo adulto","descriptionEn":"Websites with adult content"},{"id":19,"categoryId":7,"name":"Redes Sociais Adultas","nameEn":"Adult Social Networks","icon":"fas fa-users","description":"Redes sociais para adultos","descriptionEn":"Social networks for adults"},{"id":20,"categoryId":8,"name":"Jogos Online","nameEn":"Online Games","icon":"fas fa-gamepad","description":"Jogue diretamente no seu navegador","descriptionEn":"Play games directly in your browser"},{"id":21,"categoryId":8,"name":"Reviews de Jogos","nameEn":"Game Reviews","icon":"fas fa-star","description":"Reviews e avaliações de jogos populares","descriptionEn":"Reviews and ratings of popular games"},{"id":22,"categoryId":8,"name":"Comunidades de Jogos","nameEn":"Gaming Communities","icon":"fas fa-users","description":"Comunidades online para gamers","descriptionEn":"Online communities for gamers"},{"id":23,"categoryId":8,"name":"Desenvolvimento de Jogos","nameEn":"Game Development","icon":"fas fa-code","description":"Recursos para desenvolvedores de jogos","descriptionEn":"Resources for game developers"}],"links":[{"id":1,"title":"YouTube - Music Videos","url":"https://youtube.com","description":"Watch the latest music videos from your favorite artists","categoryId":1,"subcategoryId":1,"icon":"fab fa-youtube","type":"youtube","isFeatured":true},{"id":2,"title":"Instagram - Photography","url":"https://instagram.com","description":"Share your photos and connect with others","categoryId":2,"subcategoryId":5,"icon":"fab fa-instagram","type":"instagram","isFeatured":true},{"id":3,"title":"Spotify - Top Charts","url":"https://spotify.com","description":"Listen to the most popular songs right now","categoryId":3,"subcategoryId":9,"icon":"fab fa-spotify","type":"spotify","isFeatured":true},{"id":4,"title":"Coursera - Online Learning","url":"https://coursera.org","description":"Take online courses from top universities","categoryId":4,"subcategoryId":13,"icon":"fas fa-graduation-cap","type":"website","isFeatured":true},{"id":5,"title":"BBC News - World","url":"https://bbc.com/news","description":"Latest world news and current affairs","categoryId":5,"subcategoryId":null,"icon":"fas fa-newspaper","type":"website","isFeatured":true},{"id":6,"title":"Amazon - Shopping","url":"https://amazon.com","description":"Shop for millions of products online","categoryId":6,"subcategoryId":null,"icon":"fas fa-shopping-cart","type":"website","isFeatured":true},{"id":1761823562980,"title":"youtube","url":"https://www.youtube.com","category":1,"subcategoryId":null,"description":"","thumbnail":null,"featured":false}]};
-    
-    // Função para restaurar dados apenas uma vez
-    function restoreDataOnce() {
-        if (restoreData.categories) {
-            localStorage.setItem('categories', JSON.stringify(restoreData.categories));
-        }
-        if (restoreData.subcategories) {
-            localStorage.setItem('subcategories', JSON.stringify(restoreData.subcategories));
-        }
-        if (restoreData.links) {
-            localStorage.setItem('links', JSON.stringify(restoreData.links));
-        }
-        console.log('✅ Dados injetados com sucesso - UMA VEZ');
-    }
-    
-    // Executa imediatamente se a página já carregou, ou espera pelo DOMContentLoaded
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', restoreDataOnce);
-    } else {
-        restoreDataOnce();
-    }
-}
-</script>
-<!-- Fim dos dados injetados -->
 </body>
 </html>
